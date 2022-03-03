@@ -1,4 +1,74 @@
+/*
+	
+	想定設定
+		映像解像度 1920x1080
+		ブラウザーサイズ 960x540
+		ブラウザー位置 X: 960 Y: 540
+	
+	この場合、画面中央にコメントが概ね常に表示されることになる。
+	配信視聴時の視線移動を軽減することを目的としているため、
+	この表示そのものは意図したものだが、ほぼすべての視聴者は、
+	画面中央の情報を隠しかねないこの見慣れない表示位置をかなり不快に感じるだろう。
+	また実際に視線移動が軽減されるかどうかも検証したわけではなく、
+	配信内容によってはこの表示が相応しくない可能性がある。
+	--chat-direction, --chat-direction-bottom の値をコメントに従って変更することで
+	チャットの進行方向を変更できるため、想定表示にこだわることなく任意の位置、サイズで表示することをかなり強く推奨する。
+	
+	Twitch のチャットの設定そのものを変更するための応急処置として、
+	チャット画面にマウスカーソルを乗せるとコメント送信フォームなど、各種コントロールが表示されるようになっている。
+	この中には設定画面表示ボタンも含まれ、例えばタイムスタンプを表示したい場合はそれを通じて設定を変更できる。
+	なお、OBS のプレビュー画面のブラウザーソースにマウスカーソルを乗せても変化はない。
+	まずチャットを表示しているブラウザーソースを選択した状態で OBS に表示される「対話(Interact)」ボタンを押し、
+	ポップアップされたウィンドウの中のチャット画面を通じて上記の操作を行なう。
+	
+*/
+
+/* ブラウザーの横幅が 800px 以下の時、フォントの基準サイズを小さくする。 */
+@media only screen and (max-width: 800px) {
+	body {
+		--chat-font-size: .8rem;
+	}
+}
+
 :root {
+	
+	
+	/* コメントなどの水平方向の基準位置。使わない方をコメントにする。 */
+	/* 左寄せ */
+	--comment-flex-direction: row;
+	--comment-wrapper-flex-direction: row-reverse;
+	--username-node-flex-direction: row-reverse;
+	--comment-separator-left: 0;
+	--comment-separator-right: unset;
+	--message-text-align: left;
+	--username-node-margin-preset: 0 0 0 1.5rem;
+	--username-node-padding-preset: 0 0 0 1.5rem;
+	/* 右寄せ（とても読みにくく、非実用的） */
+	/*--comment-flex-direction: row-reverse;
+	--comment-wrapper-flex-direction: row;
+	--username-node-flex-direction: row;
+	--comment-separator-left: unset;
+	--comment-separator-right: 0;
+	--message-text-align: right;
+	--username-node-margin-preset: 0 1.5rem 0 0;
+	--username-node-padding-preset: 0 1.5rem 0 0;*/
+	
+	/*
+		
+		コメントの挿入およびスクロール方向。使わない方をコメントにする。
+		
+		通常の Twitch のチャットのように、新着コメントを下方に向けて追加してき、
+		新着コメントが表示領域の端に達した時に、以降の新着コメントを表示領域内に表示させ続ける、
+		つまり追加された新着コメントが広げた表示領域にスクロールを追従させると言った表示方法は、
+		恐らく JavaScript を併用しないと CSS だけでは実現できない。
+		
+	*/
+	/* 新着コメントは領域上端に挿入され、以降のコメントは下方へ流れる */
+	--chat-direction: column-reverse;
+	--chat-direction-bottom: unset;
+	/* 新着コメントは領域下端に挿入され、以降のコメントは上方へ流れる */
+	/*--chat-direction: column;
+	--chat-direction-bottom: 0;*/
 	
 	--chat-font-size: 1rem;
 	--chat-line-height: 1.3;
@@ -22,13 +92,22 @@
 	--third-comment-opacity-ratio-value: .6;
 	--old-comment-opacity-ratio-value: .3;
 	
-	--comment-anime-out-delay: 8s;
-	--second-comment-anime-exit-delay: 240s;
-	--third-comment-anime-exit-delay: 180s;
+	/* 以下の変数はアニメ関係 */
+	
+	--anime-common-function-archive-0: .35,-1.28,.56,1.6;
+	--anime-common-function-archive-1: .26,.16,.16,2.39;
+	--anime-common-function-archive-2: .26,.16,.37,2.09;
+	--anime-common-function: cubic-bezier(var(--anime-common-function-archive-2));
 	
 	/*
 		comment-anime-out
 			三つ目以降の六つ目以前のコメントを変数 --comment-anime-out-delay で指定した時間経過後に消すアニメ。
+	*/
+	--comment-anime-out-duration: .5s;
+	--comment-anime-out-function: var(--anime-common-function);
+	--comment-anime-out-delay: 8s;
+	
+	/*
 		comment-anime-exit-0
 			五つ目以降のコメントに対して適用されるアニメ。
 			既定では五つ目以降のコメントは、五つ目以降になった時点で強制的に自動で見えなくさせられる。
@@ -39,15 +118,39 @@
 			長時間チャットが止まった時に、comment-anime-exit-0 で消えないコメントを消すことを想定したアニメ。
 			comment-anime-exit-0 が対象のすべての要素で再生されたあとで、残されたコメントに対して再生されることを想定している。
 	*/
-	--comment-anime-out-duration: .5s;
-	--comment-anime-out-function: var(--anime-common-function);
+	--second-comment-anime-exit-delay: 240s;
+	--third-comment-anime-exit-delay: calc(var(--second-comment-anime-exit-delay) * .75);
 	--comment-anime-exit-0-duration: .4s;
 	--comment-anime-exit-1-duration: var(--comment-anime-exit-0-duration);
 	
-	--anime-common-function-backup-0: .35,-1.28,.56,1.6;
-	--anime-common-function-backup-1: .26,.16,.16,2.39;
-	--anime-common-function-backup-2: .26,.16,.37,2.09;
-	--anime-common-function: cubic-bezier(var(--anime-common-function-backup-2));
+	/*
+		comment-anime-fade-0
+			--comment-anime-fade-0-delay で指定した時間経過後、
+			コメントの opacity を、現在の opacity の値に --comment-anime-fade-0-opacity-ratio を乗算した値にする。
+		comment-anime-fade-1
+			--comment-anime-fade-1-delay で指定した時間経過後、
+			コメントの opacity を、現在の opacity の値に --comment-anime-fade-1-opacity-ratio を乗算した値にする。
+			上記二つは、他の設定を大きく変更しなければ、基本的に最新のコメントに対してしか再生されない。
+			このアニメが意図しているのは、まず時間の経過で最新のコメント以外がすべて消えたあと、
+			さらにチャットが停滞を続けた場合、まず comment-anime-fade-0 で残った最新のコメントを半透明化し、
+			さらに停滞したまま時間が経過した場合、comment-anime-fade-0 で現在の最新コメントを完全に透明化させることであるため、
+			--comment-anime-fade-*-delay の値を他のアニメの再生が始まるより早くしないようにする必要がある。
+			でなければ最新のコメントがそれ以降のコメントよりも早く消えるか、読みにくい状態になる。
+			そのため、既定では最初のフェードは --second-comment-anime-exit-delay で設定した 1.25 倍、
+			最後のフェードは --comment-anime-fade-0-delay の 1.2 倍として、相対的な値で指定して、表示の不整合を予防している。
+	*/
+	
+	--comment-anime-fade-function: ease-in;
+	
+	--comment-anime-fade-0-opacity-ratio: .5;
+	--comment-anime-fade-0-duration: .4s;
+	--comment-anime-fade-0-function: var(--comment-anime-fade-function);
+	--comment-anime-fade-0-delay: calc(var(--second-comment-anime-exit-delay) * 1.25);
+	
+	--comment-anime-fade-1-opacity-ratio: 0;
+	--comment-anime-fade-1-duration: .4s;
+	--comment-anime-fade-1-function: var(--comment-anime-fade-function);
+	--comment-anime-fade-1-delay: calc(var(--comment-anime-fade-0-delay) * 1.2);
 	
 	--timestamp-color: rgba(255,255,255, .75);
 	--timestamp-font-family: Arial;
@@ -59,8 +162,8 @@
 	--username-node-font-family: inherit;
 	--username-node-font-size: 300%;
 	--username-node-font-weight: 1000;
-	--username-node-margin: 0 0 0 1.5rem;
-	--username-node-padding: 0 0 0 1.5rem;
+	--username-node-margin: var(--username-node-margin-preset);
+	--username-node-padding: var(--username-node-padding-preset);
 	
 	--username-color: inherit;
 	--username-font-family: inherit;
@@ -76,7 +179,7 @@
 	--user-badge-border-radius: .4rem;
 	
 	/* コメント本文と送信者情報を隔てる棒線。実態は border-right であるため、指定方法は CSS プロパティの border に準ずる。 */
-	--comment-separator: 5px dotted rgba(240,240,240, 1);
+	--comment-separator: 5px dotted rgba(255,255,255, .8);
 	
 	--message-color: rgba(255,255,255, 1);
 	--message-font-family: inherit;
@@ -93,7 +196,26 @@
 	--message-anime-in-function: var(--anime-common-function);
 	--message-anime-in-delay: 0s;
 	
-	--message-child-background: linear-gradient(transparent 59.9%, rgba(255,200,200, .4) 60%);
+	/*
+		新着コメントのテキストやエモートを背景で装飾して強調する。
+		既定ではマーカーで引いたような半透明の灰色の幅広の線が背景画像として表示され、
+		--message-child-background-color で線の色、
+		--message-child-background-bound-0-position で線の上端の位置、
+		--message-child-background-bound-1-position で線の下端の位置を指定できる。
+	*/
+	--message-child-background-color: rgba(255,255,255, .5);
+	--message-child-background-color-0: var(--message-child-background-color);
+	--message-child-background-color-1: var(--message-child-background-color);
+	--message-child-background-bound-0-position: 50%;
+	--message-child-background-bound-1-position: 90%;
+	--message-child-background: linear-gradient(
+			transparent calc(var(--message-child-background-bound-0-position) - 0.1%),
+			var(--message-child-background-color-0) var(--message-child-background-bound-0-position),
+			var(--message-child-background-color-1) calc(var(--message-child-background-bound-1-position) - 0.1%),
+			transparent var(--message-child-background-bound-1-position)
+		);
+	
+	/* コメント内の各テキストの内側の余白 */
 	--message-child-padding: 0 1.2rem;
 	
 	/*
@@ -132,14 +254,19 @@
 	line-height: var(--chat-line-height) !important;
 	
 }
+.simplebar-content {
+	position: relative;
+}
 .chat-scrollable-area__message-container {
-	bottom: 0;
+	bottom: var(--chat-direction-bottom);
+	display: flex !important;
+	flex-direction: var(--chat-direction);
 	margin: var(--chat-margin);
 	padding: var(--chat-padding);
 	position: absolute;
 	width: 100%;
 }
-/* 包括要素内のコメント要素以外の要素を非表示（影響不明） */
+/* 包括要素内のコメント要素以外の要素を強制非表示（影響不明） */
 .chat-scrollable-area__message-container > :not(.chat-line__message) {
 	
 	display: var(--chat-not-user-comment-display) !important;
@@ -151,7 +278,8 @@
 	
 	color: var(--comment-color) !important;
 	display: flex;
-	margin: 2rem 0 2rem 3rem;
+	flex-direction: var(--comment-flex-direction);
+	margin: 1.5rem 0 1.5rem 3rem;
 	font-family: var(--comment-font-family) !important;
 	font-size: var(--comment-font-size) !important;
 	font-weight: var(--comment-font-weight) !important;
@@ -184,53 +312,66 @@
 		
 */
 .chat-line__message:nth-last-child(1) {
+	--comment-anime-fade-state: running;
 }
 .chat-line__message:nth-last-child(2) {
-	--comment-anime-exit-0-delay: var(--second-comment-anime-exit-delay);
+	--comment-anime-exit-1-delay: var(--second-comment-anime-exit-delay);
 	--comment-opacity: calc(var(--comment-default-opacity) * var(--second-comment-opacity-ratio-value));
 }
 .chat-line__message:nth-last-child(n+2) {
-	--comment-anime-exit-0-state: running;
+	--comment-anime-exit-1-state: running;
+	--comment-anime-fade-state: paused;
 }
 .chat-line__message:nth-last-child(3) {
 	--comment-opacity: calc(var(--comment-default-opacity) * var(--third-comment-opacity-ratio-value));
 }
 .chat-line__message:nth-last-child(n+3) {
-	--comment-anime-exit-0-delay: var(--third-comment-anime-exit-delay);
+	--comment-anime-exit-1-delay: var(--third-comment-anime-exit-delay);
 }
 .chat-line__message:nth-last-child(n+4) {
 	--comment-opacity: calc(var(--comment-default-opacity) * var(--old-comment-opacity-ratio-value));
 }
 .chat-line__message:nth-last-child(n+6) {
-	--comment-anime-exit-0-state: paused;
-	--comment-anime-exit-1-state: running;
+	--comment-anime-exit-0-state: running;
+	--comment-anime-exit-1-state: paused;
 }
-/*
+
 .chat-line__message:last-child {
-	--comment-anime-latest-state: running;
-	background-color:red !important;
+	--comment-anime-latest: none;
 }
 .chat-line__message:not(:last-child) {
-	--comment-anime-latest-state: running;
-}*/
+	--comment-anime-latest: none;
+}
 .mddis.chat-line__no-background {
+	
+	
+	/*
+		以下の変数は各アニメの値を animation に指定するために一括指定形式で並べたもの。
+		変数の値を none に上書きするか、このルール内の animation の対応する箇所を none にするとそのアニメは再生が行なわれなくなる。
+	*/
+	
+	/* 五つ目以降のコメントを即時消すアニメ */
+	--comment-anime-exit-0: comment-exit var(--comment-anime-exit-0-duration) ease-in 0s 1 normal forwards var(--comment-anime-exit-0-state, paused);
+	/* 一つ目以降のコメントを一定時間後に消すアニメ */
+	--comment-anime-exit-1: comment-exit var(--comment-anime-exit-1-duration) ease-in var(--comment-anime-exit-1-delay, 0s) 1 normal forwards var(--comment-anime-exit-1-state, paused);
+	/* 上記以外の状況でコメントを消すアニメ */
+	--comment-anime-out: comment-io var(--comment-anime-out-duration) var(--comment-anime-out-function) var(--comment-anime-out-delay) 1 reverse forwards var(--comment-anime-out-state);
+	/* 以下二つは一定時間経過後コメントを半透明化し、さらに時間経過後完全に透明にすることを想定したアニメ */
+	--comment-anime-fade-0: comment-fade-0 var(--comment-anime-fade-0-duration) var(--comment-anime-fade-0-function) var(--comment-anime-fade-0-delay) 1 normal forwards var(--comment-anime-fade-state, paused);
+	--comment-anime-fade-1: comment-fade-1 var(--comment-anime-fade-1-duration) var(--comment-anime-fade-1-function) var(--comment-anime-fade-1-delay) 1 normal forwards var(--comment-anime-fade-state, paused);
 	
 	align-items: center !important;
 	display: flex !important;
-	flex-direction: row-reverse;
+	flex-direction: var(--comment-wrapper-flex-direction);
 	justify-content: flex-end;
 	opacity: var(--comment-opacity);
 	transform-origin: center bottom;
 	
-	animation:
-		/* 五つ目以降のコメントを即時消すアニメ */
-		comment-exit var(--comment-anime-exit-1-duration, var(--comment-anime-exit-0-duration)) ease-in 0s 1 normal forwards var(--comment-anime-exit-1-state, paused),
-		/* 一つ目以降のコメントを一定時間後に消すアニメ */
-		comment-exit var(--comment-anime-exit-0-duration) ease-in var(--comment-anime-exit-0-delay) 1 normal forwards var(--comment-anime-exit-0-state, paused),
-		/* 上記以外の状況でコメントを消すアニメ */
-		comment-io var(--comment-anime-out-duration) var(--comment-anime-out-function) var(--comment-anime-out-delay) 1 reverse forwards var(--comment-anime-out-state)/* ,
-		最新のコメントにだけ再生されるアニメだがこの指定では現状機能しない。
-		comment-io 1s var(--comment-anime-out-function) 3s infinite normal forwards var(--comment-anime-latest-state, running)*/;
+	animation:	var(--comment-anime-exit-0),
+					var(--comment-anime-exit-1),
+					var(--comment-anime-out),
+					var(--comment-anime-fade-0),
+					var(--comment-anime-fade-1);
 	
 }
 @keyframes comment-io {
@@ -255,6 +396,22 @@
 		opacity: 0;
 	}
 }
+@keyframes comment-fade-0 {
+	from {
+		opacity: var(--comment-opacity);
+	}
+	to {
+		opacity: calc(var(--comment-opacity) * var(--comment-anime-fade-0-opacity-ratio));
+	}
+}
+@keyframes comment-fade-1 {
+	from {
+		opacity: calc(var(--comment-opacity) * var(--comment-anime-fade-0-opacity-ratio));
+	}
+	to {
+		opacity: calc(var(--comment-opacity) * var(--comment-anime-fade-1-opacity-ratio));
+	}
+}
 
 /* コメントタイムスタンプ */
 .chat-line__timestamp {
@@ -268,13 +425,14 @@
 
 /* コメント送信者情報要素 */
 .chat-line__username-container {
+	
 	color: var(--username-node-color) !important;
 	align-content: center;
 	align-items: center;
 	align-self: stretch;
 	display: flex !important;
 	flex: 0 1 auto !important;
-	flex-direction: row-reverse;
+	flex-direction: var(--username-node-flex-direction);
 	flex-wrap: wrap;
 	justify-content: center;
 	font-family: var(--username-node-font-family, inherit) !important;
@@ -286,11 +444,13 @@
 }
 /* コメント本文と送信者情報の間 */
 .chat-line__username-container::after {
+	
 	border-right: var(--comment-separator);
 	content: "";
 	height: 100%;
-	left: 0;
+	left: var(--comment-separator-left);
 	position: absolute;
+	right: var(--comment-separator-right);
 }
 
 /* 送信者情報内の要素（送信者、バッジ）間の余白設定。  */
@@ -331,6 +491,7 @@
 	font-weight: var(--message-font-weight) !important;
 	line-height: var(--message-line-height) !important;
 	position: relative;
+	text-align: var(--message-text-align);
 	text-shadow: var(--message-text-shadow) !important;
 	transform-origin: center bottom;
 	/*word-break: break-all;*/
@@ -407,14 +568,20 @@
 
 /* 以下のような、標準で表示される要素への display: none; は予期せぬ不具合の原因となる可能性が強いので注意が必要。 */
 
+
 /* チャットページのヘッダー */
-.stream-chat-header,
+body:not(:hover) .stream-chat-header,
 /* 入力フォームの上に表示される通知 */
-[data-test-selector="chat-private-callout-queue__callout-container"],
+body:not(:hover) [data-test-selector="chat-private-callout-queue__callout-container"],
 /* チャット入力欄 */
-.chat-input__textarea,
+body:not(:hover) .chat-input__textarea,
 /* チャット送信ボタン */
-[data-test-selector="chat-input-buttons-container"]
+body:not(:hover) [data-test-selector="chat-input-buttons-container"],
+/*
+	コメント包括要素の親要素内のコメント包括要素以外の要素を強制的に非表示（影響不明）
+	対象には、例えばサブスクライバーの情報を表示するヘッダーなどが該当する。
+*/
+body:not(:hover) .chat-room__content > :not(.chat-list--default)
 {
 	display: none !important;
 }
