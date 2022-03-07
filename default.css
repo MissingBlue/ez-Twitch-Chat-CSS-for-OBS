@@ -43,7 +43,7 @@
 		この値は変数 --second-comment-anime-exit-delay に乗算される。
 		平たく言えば、この値を小さくするとコメントは早く消え、大きくすると長く表示される。
 	*/
-	--comment-anime-adjustor: .01;
+	--comment-anime-adjustor: 1;
 	
 	/* コメントなどの水平方向の基準位置。使わない方をコメントにする。 */
 	/* 左寄せ */
