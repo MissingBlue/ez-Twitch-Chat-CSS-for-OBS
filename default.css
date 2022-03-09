@@ -79,6 +79,8 @@
 	/* 新着コメントは領域上端に挿入され、以降のコメントは下方へ流れる */
 	--chat-direction: column-reverse;
 	--chat-direction-bottom: unset;
+	/* この表示の時、エモートが跳ねた時に表示領域外に出て見切れるため、画面上端に余白を取っている */
+	--chat-margin-top: 5rem;
 	/* 新着コメントは領域下端に挿入され、以降のコメントは上方へ流れる */
 	/*--chat-direction: column;
 	--chat-direction-bottom: 0;*/
@@ -94,8 +96,8 @@
 		現状ではチャット全体の境界を一切表示していないため、margin, padding の両方に指定する必要は恐らくない。
 		指定方法は CSS プロパティの margin, padding に準じ、左から順に上、右、下、左の余白の大きさを指定する。
 	*/
-	--chat-margin: 0 0 0 0;
-	--chat-padding: 0 0 0 0;
+	--chat-margin: var(--chat-margin-top, 0) var(--chat-margin-right, 0) var(--chat-margin-bottom, 0) var(--chat-margin-left, 0);
+	--chat-padding: var(--chat-padding-top, 0) var(--chat-padding-right, 0) var(--chat-padding-bottom, 0) var(--chat-padding-left, 0);
 	
 	--not-user-comment-display: none;
 	
@@ -322,6 +324,7 @@ body:not(:hover) .live-message-separator-line__hr ~ * {
 .simplebar-content {
 	position: relative;
 }
+/* コメント要素の直近の包括要素 */
 .chat-scrollable-area__message-container {
 	bottom: var(--chat-direction-bottom);
 	display: flex !important;
