@@ -300,7 +300,26 @@ body:not(:hover) .chat-room__content > :not(.chat-list--default),
 body:not(:hover) .chat-scrollable-area__message-container > :not(.chat-line__message),
 /* 新着コメントセパレーター（配信者アカウントでログイン時のみ表示） */
 body:not(:hover) .live-message-separator-line__hr,
-body:not(:hover) .live-message-separator-line__hr ~ * {
+body:not(:hover) .live-message-separator-line__hr ~ *,
+/* コメント返信先の表示。これは Firefox などのブラウザー用で、OBS 上では機能しない。 */
+body:not(:hover) .chat-line__message-container > div > figure,
+body:not(:hover) .chat-line__message-container > div > figure ~ *,
+/*
+	コメント返信先の表示。この部分は OBS と通常のブラウザーとで要素の構成がかなり異なり、
+	ブラウザーとは別個のセレクターを使わないとルールを適用させられない。
+	恐らく古い OBS の組み込み型 chromium が、現状の Twitch の一部要素に対応できないため、
+	Twitch のチャットを OBS 上で読み込んだ時のみ、以下のセレクターで選択される要素に、既定の返信先要素が置き換えるようにしているものと思われる。
+	このセレクターは以下の手順で確認した。
+		1.	https://developer.mozilla.org/ja/docs/Tools/Remote_Debugging/Chrome_Desktop#running_chrome を参考に、
+			OBS の起動オプションに --remote-debugging-port=9222  --no-first-run --no-default-browser-check を指定して起動。
+		2.	使用している Firefox に WebIDE が見当たらなかったため、Chromium のアドレスバーに chrome://inspect/#devices を入力し、
+			表示されたページ内の Remote Target から該当する Twitch Chat の "inspect" を選択する。
+			(参考: https://qiita.com/satoyoshiharu/items/92dec9669cc802fa4d3c)
+		3.	別ウィンドウがポップアップされ、OBS 上の表示内容とサイドバー内に開発ツールが表示される。
+			ただし動作が不安定で右クリックの反応が著しく悪く、特に表示内容上で右クリックすると OBS のクラッシュを引き起こす。
+*/
+body:not(:hover) .chat-line__message-container .reply-context-pill
+{
 	
 	display: var(--not-user-comment-display) !important;
 	
