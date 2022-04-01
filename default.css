@@ -647,9 +647,9 @@ body:not(:hover) .chat-line__message-container .reply-context-pill
 .announcement-line .chat-line__no-background
 {
 	
-	--new-arraival-background-color: rgba(255,40,80,1);
-	--new-arraival-font-size: 1rem;
-	--new-arraival-size: 2rem;
+	--new-arrival-background-color: rgba(255,40,80,1);
+	--new-arrival-font-size: 1rem;
+	--new-arrival-size: 2rem;
 	--new-arraibal-anime-baground-position: center 40%;
 	
 }
@@ -658,26 +658,26 @@ body:not(:hover) .chat-line__message-container .reply-context-pill
 {
 	
 	background:	no-repeat center 0%/.55rem 70% linear-gradient(transparent 4.9%, rgba(255,255,255,1) 5%, rgba(255,255,255,1) 59.9%, transparent 60%, transparent 74.9%, rgba(255,255,255,1) 75%, rgba(255,255,255,1) 94.9%, transparent 95%),
-					var(--new-arraival-background-color);
+					var(--new-arrival-background-color);
 	border-radius: 100%;
 	color: white;
 	content: "";
 	display: flex;
-	font-size: var(--new-arraival-font-size);
-	height: var(--new-arraival-size);
-	left: calc(var(--new-arraival-size) / -2);
+	font-size: var(--new-arrival-font-size);
+	height: var(--new-arrival-size);
+	left: calc(var(--new-arrival-size) / -2);
 	position: absolute;
-	top: calc(var(--new-arraival-size) / -2);
+	top: calc(var(--new-arrival-size) / -2);
 	transform-origin: center;
-	width: var(--new-arraival-size);
+	width: var(--new-arrival-size);
 	z-index: 1;
 	
-	animation:	new-arraival 1s ease 0s infinite normal forwards running,
-					new-arraival-out .3s var(--emote-anime-in-function) 0s 1 reverse forwards running,
-					new-arraival-out .3s var(--emote-anime-in-function) 30s 1 normal forwards running;
+	animation:	new-arrival 1s ease 0s infinite normal forwards running,
+					new-arrival-out .3s var(--emote-anime-in-function) 0s 1 reverse forwards running,
+					new-arrival-out .3s var(--emote-anime-in-function) 30s 1 normal forwards running;
 	
 }
-@keyframes new-arraival {
+@keyframes new-arrival {
 	from {
 		background-position: center 90%, center;
 	}
@@ -685,7 +685,7 @@ body:not(:hover) .chat-line__message-container .reply-context-pill
 		background-position: center 10%, center;
 	}
 }
-@keyframes new-arraival-out {
+@keyframes new-arrival-out {
 	from {
 		transform: scale(1);
 	}
