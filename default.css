@@ -279,6 +279,10 @@
 	
 	--announce-icon-sibling-margin: 0 0 0 5rem;
 	
+	/* 最新の /announce 限定で、既定の 10 倍長く残留する。 */
+	--announce-anime-fade-0-delay: calc(var(--second-comment-anime-exit-delay) * 10);
+	--announce-anime-fade-1-delay: calc(var(--announce-anime-fade-0-delay) * 1.2);
+	
 }
 
 * {
@@ -362,7 +366,8 @@ body:not(:hover) .chat-line__message-container .reply-context-pill
 
 
 /* コメント要素 */
-.chat-line__message {
+.chat-line__message,
+.announcement-line {
 	
 	--comment-anime-fade-state: running;
 	--comment-opacity-additional-ratio: 1;
@@ -379,7 +384,8 @@ body:not(:hover) .chat-line__message-container .reply-context-pill
 	
 }
 /* 最新から三つ目までのコメント以降のコメントを一定時間後に自動で消すためのセレクターおよび変数 */
-.chat-line__message:not(:nth-last-child(-n+3)) {
+.chat-line__message:not(:nth-last-child(-n+3)),
+.announcement-line:not(:nth-last-child(-n+3)) {
 	
 	--comment-anime-out-state: running;
 	
@@ -404,43 +410,54 @@ body:not(:hover) .chat-line__message-container .reply-context-pill
 		こうしたことから、以下を含む、セレクターに nth-child を用いたルールは動作環境の変化で容易に予期しない結果を引き起こす点に注意が必要。
 		
 */
-.chat-line__message:nth-last-child(1) {
+.chat-line__message:nth-last-child(1),
+.announcement-line:nth-last-child(1) {
 }
-.chat-line__message:nth-last-child(2) {
+.chat-line__message:nth-last-child(2),
+.announcement-line:nth-last-child(2) {
 	--comment-anime-exit-1-delay: var(--second-comment-anime-exit-delay);
 	--comment-opacity-additional-ratio: var(--second-comment-opacity-ratio-value);
 	--comment-container-filter-blur: var(--second-comment-container-filter-blur, var(--comment-container-default-filter-blur));
 }
-.chat-line__message:nth-last-child(n+2) {
+.chat-line__message:nth-last-child(n+2),
+.announcement-line:nth-last-child(n+2) {
 	--comment-anime-exit-1-state: running;
 	--comment-anime-fade-state: paused;
 }
-.chat-line__message:nth-last-child(n+2) .chat-line__message-container {
+.chat-line__message:nth-last-child(n+2) .chat-line__message-container,
+.announcement-line:nth-last-child(n+2) .chat-line__message-container {
 	--comment-anime-fade-0-opacity-ratio: var(--comment-fade-finalized, 1);
 	--comment-anime-fade-1-opacity-ratio: var(--comment-fade-finalized, 1);
 }
-.chat-line__message:nth-last-child(3) {
+.chat-line__message:nth-last-child(3),
+.announcement-line:nth-last-child(3) {
 	--comment-opacity-additional-ratio: var(--third-comment-opacity-ratio-value);
 	--comment-container-filter-blur: var(--third-comment-container-filter-blur, var(--second-comment-container-filter-blur), var(--comment-container-default-filter-blur));
 }
-.chat-line__message:nth-last-child(n+3) {
+.chat-line__message:nth-last-child(n+3),
+.announcement-line:nth-last-child(n+3) {
 	--comment-anime-exit-1-delay: var(--third-comment-anime-exit-delay);
 }
-.chat-line__message:nth-last-child(n+4) {
+.chat-line__message:nth-last-child(n+4),
+.announcement-line:nth-last-child(n+4) {
 	--comment-opacity-additional-ratio: var(--old-comment-opacity-ratio-value);
 }
-.chat-line__message:nth-last-child(n+5) {
+.chat-line__message:nth-last-child(n+5),
+.announcement-line:nth-last-child(n+5) {
 	--comment-container-filter-blur: var(--old-comment-container-filter-blur, var(--third-comment-container-filter-blur), var(--second-comment-container-filter-blur), var(--comment-container-default-filter-blur));
 }
-.chat-line__message:nth-last-child(n+6) {
+.chat-line__message:nth-last-child(n+6),
+.announcement-line:nth-last-child(n+6) {
 	--comment-anime-exit-0-state: running;
 	--comment-anime-exit-1-state: paused;
 }
 
-.chat-line__message:last-child {
+.chat-line__message:last-child,
+.announcement-line:last-child {
 	--comment-anime-latest: none;
 }
-.chat-line__message:not(:last-child) {
+.chat-line__message:not(:last-child),
+.announcement-line:not(:last-child) {
 	--comment-anime-latest: none;
 }
 .chat-line__message-container {
@@ -643,19 +660,21 @@ body:not(:hover) .chat-line__message-container .reply-context-pill
 
 /* 新着マーク */
 /* すべてが非常に雑な指定。要クリーンナップ */
-.chat-line__message .chat-line__no-background,
-.announcement-line .chat-line__no-background
-{
+.chat-line__no-background {
 	
 	--new-arrival-background-color: rgba(255,40,80,1);
 	--new-arrival-font-size: 1rem;
 	--new-arrival-size: 2rem;
 	--new-arraibal-anime-baground-position: center 40%;
 	
+	--new-arrival-anime-in-duration: .3s;
+	--new-arrival-anime-in-delay: 0s;
+	
+	--new-arrival-anime-out-duration: var(--new-arrival-anime-in-duration);
+	--new-arrival-anime-out-delay: 30s;
+	
 }
-.chat-line__message .chat-line__no-background::before,
-.announcement-line .chat-line__no-background::before
-{
+.chat-line__no-background::before {
 	
 	background:	no-repeat center 0%/.55rem 70% linear-gradient(transparent 4.9%, rgba(255,255,255,1) 5%, rgba(255,255,255,1) 59.9%, transparent 60%, transparent 74.9%, rgba(255,255,255,1) 75%, rgba(255,255,255,1) 94.9%, transparent 95%),
 					var(--new-arrival-background-color);
@@ -673,8 +692,8 @@ body:not(:hover) .chat-line__message-container .reply-context-pill
 	z-index: 1;
 	
 	animation:	new-arrival 1s ease 0s infinite normal forwards running,
-					new-arrival-out .3s var(--emote-anime-in-function) 0s 1 reverse forwards running,
-					new-arrival-out .3s var(--emote-anime-in-function) 30s 1 normal forwards running;
+					new-arrival-out var(--new-arrival-anime-in-duration) var(--emote-anime-in-function) calc(var(--new-arrival-anime-in-delay) * var(--comment-anime-adjustor)) 1 reverse forwards running,
+					new-arrival-out var(--new-arrival-anime-out-duration) var(--emote-anime-in-function) calc(var(--new-arrival-anime-out-delay) * var(--comment-anime-adjustor)) 1 normal forwards running;
 	
 }
 @keyframes new-arrival {
@@ -751,12 +770,14 @@ body:not(:hover) .chat-line__message-container .reply-context-pill
 /* Announcement */
 .announcement-line {
 	
-	/* 最新の /announce 限定で、既定の 10 倍長く残留する。 */
-	--announce-anime-fade-0-delay: calc(var(--second-comment-anime-exit-delay) * 10);
-	--announce-anime-fade-1-delay: calc(var(--comment-anime-fade-0-delay) * 1.2);
-	
 	background-color: transparent !important;
 	border: none;
+	
+}
+.announcement-line .chat-line__message {
+	
+	padding-left: 0 !important;
+	
 }
 .announcement-line .chat-line__message-container::before {
 	
@@ -774,7 +795,8 @@ body:not(:hover) .chat-line__message-container .reply-context-pill
 	transform-origin: center;
 	width: var(--announce-icon-size);
 	
-	animation: announce-icon 2s ease 0s infinite normal forwards running;
+	animation:	announce-icon 1s ease 0s infinite alternate forwards running,
+					var(--disable-comment-anime-out, var(--comment-anime-out, none));
 	
 }
 /* todo: animation-direction: alternate; にすることで繰り返し部分を一回に省略可能。 */
@@ -783,29 +805,14 @@ body:not(:hover) .chat-line__message-container .reply-context-pill
 	75% {
 		transform: rotate(var(--announce-icon-anime-rotate-neutral));
 	}
-	77.5% {
-		transform: rotate(var(--announce-icon-anime-rotate-destination));
-	}
-	83.3% {
-		transform: rotate(var(--announce-icon-anime-rotate-neutral));
-	}
-	86.1% {
-		transform: rotate(var(--announce-icon-anime-rotate-opposite));
-	}
-	88.9% {
-		transform: rotate(var(--announce-icon-anime-rotate-neutral));
-	}
 	91.7% {
 		transform: rotate(var(--announce-icon-anime-rotate-destination));
 	}
-	94.4% {
+	95.8% {
 		transform: rotate(var(--announce-icon-anime-rotate-neutral));
-	}
-	97.2% {
-		transform: rotate(var(--announce-icon-anime-rotate-opposite));
 	}
 	100% {
-		transform: rotate(var(--announce-icon-anime-rotate-neutral));
+		transform: rotate(var(--announce-icon-anime-rotate-opposite));
 	}
 	
 }
@@ -820,8 +827,8 @@ body:not(:hover) .chat-line__message-container .reply-context-pill
 .announcement-line:last-child .chat-line__message-container {
 	/*--disable-comment-anime-fade-0: none;
 	--disable-comment-anime-fade-1: none;*/
-	--comment-anime-fade-0-delay: calc(--announce-anime-fade-0-delay);
-	--comment-anime-fade-1-delay: calc(--announce-anime-fade-1-delay);
+	--comment-anime-fade-0-delay: var(--announce-anime-fade-0-delay);
+	--comment-anime-fade-1-delay: var(--announce-anime-fade-1-delay);
 }
 .announcement-line [data-test-selector="chat-line-message-body"] > :not(:empty) {
 	
