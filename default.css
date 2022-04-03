@@ -1,20 +1,912 @@
-@import '../default.css';
+/*
+	
+	想定設定
+		映像解像度 1920x1080
+		ブラウザーサイズ 960x540
+		ブラウザー位置 X: 960 Y: 540
+	
+	この場合、画面中央にコメントが概ね常に表示されることになる。
+	配信視聴時の視線移動を軽減することを目的としているため、
+	この表示そのものは意図したものだが、ほぼすべての視聴者は、
+	画面中央の情報を隠しかねないこの見慣れない表示位置をかなり不快に感じるだろう。
+	また実際に視線移動が軽減されるかどうかも検証したわけではなく、
+	配信内容によってはこの表示が相応しくない可能性も十分に考えられる。
+	--chat-direction, --chat-direction-bottom の値をコメントに従って変更することで
+	チャットの進行方向を変更できるため、想定表示にこだわることなく任意の位置、サイズで表示することをかなり強く推奨する。
+	
+	Twitch のチャットの設定そのものを変更するための応急処置として、
+	チャット画面にマウスカーソルを乗せるとコメント送信フォームなど、各種コントロールが表示されるようになっている。
+	この中には設定画面表示ボタンも含まれ、例えばタイムスタンプを表示したい場合はそれを通じて設定を変更できる。
+	なお、OBS のプレビュー画面のブラウザーソースにマウスカーソルを乗せても変化はない。
+	まずチャットを表示しているブラウザーソースを選択した状態で OBS に表示される「対話(Interact)」ボタンを押し、
+	ポップアップされたウィンドウの中のチャット画面を通じて上記の操作を行なう。
+	
+*/
+
+/* ブラウザーの横幅が 800px 以下の時に適用されるルール */
+@media only screen and (max-width: 800px) {
+	
+	:root {
+		
+		--font-size-adjustor: .7 !important;
+		
+	}
+	
+}
 
 :root {
-	--not-user-comment-display: unset;
-}
-body:not(:hover) .stream-chat-header,
-body:not(:hover) [data-test-selector="chat-input-buttons-container"] {
-	--not-user-comment-display: flex;
+	
+	/*
+		すべての指定が既定のままの場合、
+		コメントの表示、非表示に関するすべてのアニメの再生開始時間を、この値を通じて一律で調整できる。
+		この値は変数 --second-comment-anime-exit-delay に乗算される。
+		平たく言えば、この値を小さくするとコメントは早く消え、大きくすると長く表示される。
+	*/
+	--comment-anime-adjustor: 1;
+	/* フォントサイズを一律で調整 */
+	--font-size-adjustor: 1;
+	
+	/* コメントなどの水平方向の基準位置。使わない方をコメントにする。 */
+	/* 左寄せ */
+	--comment-flex-direction: row;
+	--comment-wrapper-flex-direction: row-reverse;
+	--username-node-flex-direction: row-reverse;
+	--comment-separator-left: 0;
+	--comment-separator-right: unset;
+	--message-text-align: left;
+	--username-node-margin-preset: 0 0 0 1.5rem;
+	--username-node-padding-preset: 0 0 0 1.5rem;
+	/* 右寄せ（とても読みにくく、非実用的） */
+	/*--comment-flex-direction: row-reverse;
+	--comment-wrapper-flex-direction: row;
+	--username-node-flex-direction: row;
+	--comment-separator-left: unset;
+	--comment-separator-right: 0;
+	--message-text-align: right;
+	--username-node-margin-preset: 0 1.5rem 0 0;
+	--username-node-padding-preset: 0 1.5rem 0 0;*/
+	
+	/*
+		
+		コメントの挿入およびスクロール方向。使わない方をコメントにする。
+		
+		通常の Twitch のチャットのように、新着コメントを下方に向けて追加していき、
+		新着コメントが表示領域の端に達した時に、以降の新着コメントを表示領域内に表示させ続ける、
+		つまり追加された新着コメントが広げた表示領域にスクロールを追従させると言った表示方法は、
+		恐らく JavaScript を併用しないと CSS だけでは実現できない。
+		
+	*/
+	/* 新着コメントは領域上端に挿入され、以降のコメントは下方へ流れる */
+	--chat-direction: column-reverse;
+	--chat-direction-bottom: unset;
+	/* この表示の時、エモートが跳ねた時に表示領域外に出て見切れるため、画面上端に余白を取っている */
+	--chat-margin-top: 5rem;
+	/* 新着コメントは領域下端に挿入され、以降のコメントは上方へ流れる */
+	/*--chat-direction: column;
+	--chat-direction-bottom: 0;*/
+	
+	
+	
+	/* 以下の変数は個別的で、編集にはそれが及ぼす影響への理解を要する */
+	
+	--chat-font-size: calc(1rem * var(--font-size-adjustor));
+	--chat-line-height: 1.3;
+	/*
+		チャット全体の表示位置を調整する場合、--chat-margin, --chat-padding に任意の値を指定して余白を設定する。
+		現状ではチャット全体の境界を一切表示していないため、margin, padding の両方に指定する必要は恐らくない。
+		指定方法は CSS プロパティの margin, padding に準じ、左から順に上、右、下、左の余白の大きさを指定する。
+	*/
+	--chat-margin: var(--chat-margin-top, 0) var(--chat-margin-right, 0) var(--chat-margin-bottom, 0) var(--chat-margin-left, 0);
+	--chat-padding: var(--chat-padding-top, 0) var(--chat-padding-right, 0) var(--chat-padding-bottom, 0) var(--chat-padding-left, 0);
+	
+	--not-user-comment-display: none;
+	
+	/* コメント情報を包括要素の上位にある要素 */
+	--comment-container-default-opacity: 1;
+	--comment-container-default-filter-blur: 0px;
+	--old-comment-container-filter-blur: 1.2px;
+	
+	--comment-color: inherit;
+	--comment-font-family: "メイリオ", sans-serif;
+	--comment-font-size: inherit;
+	--comment-font-weight: normal;
+	--comment-anime-out-state: paused;
+	--comment-opacity: 1;
+	--comment-opacity-to: 0;
+	--second-comment-opacity-ratio-value: .8;
+	--third-comment-opacity-ratio-value: .6;
+	--old-comment-opacity-ratio-value: .3;
+	
+	/* 以下の変数はアニメ関係 */
+	
+	--anime-common-function-archive-0: .35,-1.28,.56,1.6;
+	--anime-common-function-archive-1: .26,.16,.16,2.39;
+	--anime-common-function-archive-2: .26,.16,.37,2.09;
+	--anime-common-function: cubic-bezier(var(--anime-common-function-archive-2));
+	
+	/*
+		comment-anime-out
+			三つ目以降の六つ目以前のコメントを変数 --comment-anime-out-delay で指定した時間経過後に消すアニメ。
+		
+		このアニメを無効にする場合、以下の変数を有効にする。
+		--disable-comment-anime-out: none;
+	*/
+	--comment-anime-out-duration: .5s;
+	--comment-anime-out-function: var(--anime-common-function);
+	--comment-anime-out-delay: calc(var(--second-comment-anime-exit-delay) / 30);
+	
+	/*
+		comment-anime-exit-0
+			五つ目以降のコメントに対して適用されるアニメ。
+			既定では五つ目以降のコメントは、五つ目以降になった時点で強制的に自動で見えなくさせられる。
+		comment-anime-exit-1
+			一つ目以降のコメントに対して適用されるアニメ。
+			既定では二つ目のコメントは変数 --second-comment-anime-exit-delay で、
+			二つ目以降のコメントは --third-comment-anime-exit-delay で指定した時間経過後見えなくなる。
+			長時間チャットが止まった時に、comment-anime-exit-0 で消えないコメントを消すことを想定したアニメ。
+			comment-anime-exit-0 が対象のすべての要素で再生されたあとで、残されたコメントに対して再生されることを想定している。
+			
+		以上のアニメを無効にする場合、以下の変数をそれぞれ有効にする。
+		--disable-comment-anime-exit-0: none;
+		--disable-comment-anime-exit-1: none;
+	*/
+	--second-comment-anime-exit-delay: calc(240s * var(--comment-anime-adjustor, 1));
+	--third-comment-anime-exit-delay: calc(var(--second-comment-anime-exit-delay) * .75);
+	--comment-anime-exit-0-duration: .4s;
+	--comment-anime-exit-1-duration: var(--comment-anime-exit-0-duration);
+	
+	/*
+		comment-anime-fade-0
+			--comment-anime-fade-0-delay で指定した時間経過後、
+			コメントの opacity を、現在の opacity の値に --comment-anime-fade-0-opacity-ratio を乗算した値にする。
+		comment-anime-fade-1
+			--comment-anime-fade-1-delay で指定した時間経過後、
+			コメントの opacity を、現在の opacity の値に --comment-anime-fade-1-opacity-ratio を乗算した値にする。
+			上記二つは、他の設定を大きく変更しなければ、基本的に最新のコメントに対してしか再生されない。
+			このアニメが意図しているのは、まず時間の経過で最新のコメント以外がすべて消えたあと、
+			さらにチャットが停滞を続けた場合、まず comment-anime-fade-0 で残った最新のコメントを半透明化し、
+			さらに停滞したまま時間が経過した場合、comment-anime-fade-1 で現在の最新コメントを完全に透明化させることであるため、
+			--comment-anime-fade-*-delay の値を他のアニメの再生が始まるより早くしないようにする必要がある。
+			でなければ最新のコメントがそれ以降のコメントよりも早く消えるか、読みにくい状態になる。
+			そのため、既定では最初のフェードは --second-comment-anime-exit-delay で設定した 1.25 倍、
+			最後のフェードは --comment-anime-fade-0-delay の 1.2 倍として、相対的な値で指定して、表示の不整合を予防している。
+			
+		以上のアニメを無効にする場合、以下の変数をそれぞれ有効にする。
+		--disable-comment-anime-fade-0: none;
+		--disable-comment-anime-fade-1: none;
+	*/
+	
+	--comment-anime-fade-function: ease-in;
+	
+	--comment-anime-fade-0-opacity-ratio: .5;
+	--comment-anime-fade-0-duration: .4s;
+	--comment-anime-fade-0-function: var(--comment-anime-fade-function);
+	--comment-anime-fade-0-delay: calc(var(--second-comment-anime-exit-delay) * 1.25);
+	
+	--comment-anime-fade-1-opacity-ratio: 0;
+	--comment-anime-fade-1-duration: .4s;
+	--comment-anime-fade-1-function: var(--comment-anime-fade-function);
+	--comment-anime-fade-1-delay: calc(var(--comment-anime-fade-0-delay) * 1.2);
+	
+	--timestamp-color: rgba(255,255,255, .75);
+	--timestamp-font-family: Arial;
+	--timestamp-font-size: 150%;
+	--timestamp-font-weight: 1000;
+	--timestamp-text-shadow: 0 1px 0 rgba(0,0,0,1), 0 0 5px rgba(0,0,0,1);
+	
+	--username-node-color: inherit;
+	--username-node-font-family: inherit;
+	--username-node-font-size: 300%;
+	--username-node-font-weight: 1000;
+	--username-node-margin: var(--username-node-margin-preset);
+	--username-node-padding: var(--username-node-padding-preset);
+	
+	--username-color: inherit;
+	--username-font-family: inherit;
+	--username-font-size: inherit;
+	--username-font-weight: inherit;
+	
+	--display-name-color: rgba(255,255,255, .8);
+	--display-name-font-family: inherit;
+	--display-name-font-size: inherit;
+	--display-name-font-weight: inherit;
+	--display-name-text-shadow: 0 1px 0 rgba(0,0,0,1), 0 0 5px rgba(0,0,0,1);
+	
+	--user-badge-border-radius: .4rem;
+	
+	/* コメント本文と送信者情報を隔てる棒線。実態は border-right であるため、指定方法は CSS プロパティの border に準ずる。 */
+	--comment-separator: 5px dotted rgba(255,255,255, .8);
+	
+	--message-color: rgba(255,255,255, 1);
+	--message-font-family: inherit;
+	--message-font-size: 400%;
+	--message-font-weight: 1000;
+	--message-line-height: inherit;
+	--message-text-shadow: 0 1px 0 rgba(0,0,0,1), 0 0 5px rgba(0,0,0,1);
+	
+	/*
+		message-text-anime-in
+			コメント初回表示時にそのコメントに対して再生されるアニメ。
+	*/
+	--message-anime-in-duration: .3s;
+	--message-anime-in-function: var(--anime-common-function);
+	--message-anime-in-delay: 0s;
+	
+	/*
+		新着コメントのテキストやエモートを背景で装飾して強調する。
+		既定ではマーカーで引いたような半透明の灰色の幅広の線が背景画像として表示され、
+		--message-child-background-color で線の色、
+		--message-child-background-bound-0-position で線の上端の位置、
+		--message-child-background-bound-1-position で線の下端の位置を指定できる。
+	*/
+	--message-child-background-color: rgba(255,255,255, .5);
+	--message-child-background-color-0: var(--message-child-background-color);
+	--message-child-background-color-1: var(--message-child-background-color);
+	--message-child-background-bound-0-position: 50%;
+	--message-child-background-bound-1-position: 90%;
+	--message-child-background: linear-gradient(
+			transparent calc(var(--message-child-background-bound-0-position) - 0.1%),
+			var(--message-child-background-color-0) var(--message-child-background-bound-0-position),
+			var(--message-child-background-color-1) calc(var(--message-child-background-bound-1-position) - 0.1%),
+			transparent var(--message-child-background-bound-1-position)
+		);
+	
+	/* コメント内の各テキストの内側の余白 */
+	--message-child-padding: 0 1.2rem;
+	
+	/*
+		emote-anime-in
+			コメント内のエモートの初回表示時にそのエモートに対して再生されるアニメ。
+		emote-anime-loop
+			コメント内のエモートが表示中にそのエモートに対して再生され続ける（ことを想定した）アニメ。
+	*/
+	--emote-anime-in-duration: .5s;
+	--emote-anime-in-function: cubic-bezier(.35,-1.28,.56,1.6);
+	--emote-anime-in-delay: 0s;
+	--emote-anime-loop-duration: 8s;
+	--emote-anime-loop-function: cubic-bezier(.4,-0.21,.34,1.5);
+	--emote-anime-loop-delay: 2s;
+	--emote-anime-loop-iteration: infinite;
+	/*
+		ループアニメ中にでエモートがジャンプする高さ。実態は transform の関数 trnslate の第二引数。
+		値を高くするほど高くジャンプする。
+	*/
+	--emote-anime-loop-jump-amount: 40%;
+	
+	--emote-size: 112px;
+	
+	/* アナウンス関係 */
+	
+	--announce-icon-sibling-margin: 0 0 0 5rem;
+	
+	/* 最新の /announce 限定で、既定の 10 倍長く残留する。 */
+	--announce-anime-fade-0-delay: calc(var(--second-comment-anime-exit-delay) * 10);
+	--announce-anime-fade-1-delay: calc(var(--announce-anime-fade-0-delay)  + var(--comment-anime-fade-0-delay) * 1.2);
+	
+	/* 新着マーク関連 */
+	--new-arrival-background-color: rgba(255,40,80,1);
+	--new-arrival-font-size: 1rem;
+	--new-arrival-size: 2rem;
+	--new-arraibal-anime-baground-position: center 40%;
+	
+	--new-arrival-bg-0-size: .525rem 70%;
+	--new-arrival-bg-0-color-0: transparent;
+	--new-arrival-bg-0-color-1: rgba(255,255,255, 1);
+	--new-arrival-bg-0-step-0: 5%;
+	--new-arrival-bg-0-step-1: 65%;
+	--new-arrival-bg-0-step-2: 75%;
+	--new-arrival-bg-0-step-3: 95%;
+	--new-arrival-bg-0-linear-gradient: linear-gradient(
+			var(--new-arrival-bg-0-color-0) calc(var(--new-arrival-bg-0-step-0) - .1%),
+			var(--new-arrival-bg-0-color-1) var(--new-arrival-bg-0-step-0),
+			var(--new-arrival-bg-0-color-1) calc(var(--new-arrival-bg-0-step-1) - .1%),
+			var(--new-arrival-bg-0-color-0) var(--new-arrival-bg-0-step-1),
+			var(--new-arrival-bg-0-color-0) calc(var(--new-arrival-bg-0-step-2) - .1%),
+			var(--new-arrival-bg-0-color-1) var(--new-arrival-bg-0-step-2),
+			var(--new-arrival-bg-0-color-1) calc(var(--new-arrival-bg-0-step-3) - .1%),
+			var(--new-arrival-bg-0-color-0) var(--new-arrival-bg-0-step-3)
+		);
+	--new-arrival-bg-0: no-repeat center 0%/var(--new-arrival-bg-0-size) var(--new-arrival-bg-0-linear-gradient);
+	
+	--new-arrival-anime-loop-name: new-arrival;
+	--new-arrival-anime-loop-duration: 1s;
+	--new-arrival-anime-loop-function: ease;
+	--new-arrival-anime-loop-delay: 0s;
+	--new-arrival-anime-loop-iteration-count: infinite;
+	--new-arrival-anime-loop-direction: normal;
+	--new-arrival-anime-loop-fill-mode: forwards;
+	--new-arrival-anime-loop-state: running;
+	--new-arrival-loop-anime:	var(--new-arrival-anime-loop-name)
+										var(--new-arrival-anime-loop-duration)
+										var(--new-arrival-anime-loop-function)
+										var(--new-arrival-anime-loop-delay)
+										var(--new-arrival-anime-loop-iteration-count)
+										var(--new-arrival-anime-loop-direction)
+										var(--new-arrival-anime-loop-fill-mode)
+										var(--new-arrival-anime-loop-state);
+	
+	--new-arrival-anime-in-name: new-arrival-out;
+	--new-arrival-anime-in-duration: .3s;
+	--new-arrival-anime-in-function: var(--emote-anime-in-function);
+	--new-arrival-anime-in-delay: 0s;
+	--new-arrival-anime-in-iteration-count: 1;
+	--new-arrival-anime-in-direction: reverse;
+	--new-arrival-anime-in-fill-mode: forwards;
+	--new-arrival-anime-in-state: running;
+	--new-arrival-anime-in:	var(--new-arrival-anime-in-name)
+									var(--new-arrival-anime-in-duration)
+									var(--new-arrival-anime-in-function)
+									calc(var(--new-arrival-anime-in-delay) * var(--comment-anime-adjustor))
+									var(--new-arrival-anime-in-iteration-count)
+									var(--new-arrival-anime-in-direction)
+									var(--new-arrival-anime-in-fill-mode)
+									var(--new-arrival-anime-in-state);
+	
+	--new-arrival-anime-out-name: new-arrival-out;
+	--new-arrival-anime-out-duration: var(--new-arrival-anime-in-duration);
+	--new-arrival-anime-out-function: var(--emote-anime-in-function);
+	--new-arrival-anime-out-delay: 30s;
+	--new-arrival-anime-out-iteration-count: 1;
+	--new-arrival-anime-out-direction: normal;
+	--new-arrival-anime-out-fill-mode: forwards;
+	--new-arrival-anime-out-state: running;
+	--new-arrival-anime-out:	var(--new-arrival-anime-out-name)
+										var(--new-arrival-anime-out-duration)
+										var(--new-arrival-anime-out-function)
+										calc(var(--new-arrival-anime-out-delay) * var(--comment-anime-adjustor))
+										var(--new-arrival-anime-out-iteration-count)
+										var(--new-arrival-anime-out-direction)
+										var(--new-arrival-anime-out-fill-mode)
+										var(--new-arrival-anime-out-state);
+	
 }
 
 * {
-	margin: 0;
-	padding: 0;
+	background-color: transparent !important;
 }
-html, body {
+
+/*
+	コメント要素以外の要素への CSS。
+	標準で表示される要素への display: none; は予期せぬ不具合の原因となる可能性が強いので注意が必要。
+*/
+/* チャットページのヘッダー */
+body:not(:hover) .stream-chat-header,
+/* 入力フォームの上に表示される通知 */
+body:not(:hover) [data-test-selector="chat-private-callout-queue__callout-container"],
+/* チャット入力欄 */
+body:not(:hover) .chat-input__textarea,
+/* チャット送信ボタン */
+body:not(:hover) [data-test-selector="chat-input-buttons-container"],
+/*
+	コメント包括要素の親要素内のコメント包括要素以外の要素を強制的に非表示（影響不明）
+	対象には、例えばサブスクライバーの情報を表示するヘッダーなどが該当する。
+*/
+body:not(:hover) .chat-room__content > :not(.chat-list--default),
+/* 包括要素内のコメント要素以外の要素を強制非表示（影響不明）*/
+body:not(:hover) .chat-scrollable-area__message-container > :not(.chat-line__message):not(.announcement-line),
+/* 新着コメントセパレーター（配信者アカウントでログイン時のみ表示） */
+body:not(:hover) .live-message-separator-line__hr,
+body:not(:hover) .live-message-separator-line__hr ~ *,
+/* コメント返信先の表示。これは Firefox などのブラウザー用で、OBS 上では機能しない。 */
+body:not(:hover) .chat-line__message-container > div > figure,
+body:not(:hover) .chat-line__message-container > div > figure ~ *,
+/*
+	コメント返信先の表示。この部分は OBS と通常のブラウザーとで要素の構成がかなり異なり、
+	ブラウザーとは別個のセレクターを使わないとルールを適用させられない。
+	恐らく古い OBS の組み込み型 chromium が、現状の Twitch の一部要素に対応できないため、
+	Twitch のチャットを OBS 上で読み込んだ時のみ、以下のセレクターで選択される要素に、既定の返信先要素が置き換えるようにしているものと思われる。
+	このセレクターは以下の手順で確認した。
+		1.	https://developer.mozilla.org/ja/docs/Tools/Remote_Debugging/Chrome_Desktop#running_chrome を参考に、
+			OBS の起動オプションに --remote-debugging-port=9222  --no-first-run --no-default-browser-check を指定して起動。
+		2.	使用している Firefox に WebIDE が見当たらなかったため、Chromium のアドレスバーに chrome://inspect/#devices を入力し、
+			表示されたページ内の Remote Target から該当する Twitch Chat の "inspect" を選択する。
+			(参考: https://qiita.com/satoyoshiharu/items/92dec9669cc802fa4d3c)
+		3.	別ウィンドウがポップアップされ、OBS 上の表示内容とサイドバー内に開発ツールが表示される。
+			ただし動作が不安定で右クリックの反応が著しく悪く、特に表示内容上で右クリックすると OBS のクラッシュを引き起こす。
+*/
+body:not(:hover) .chat-line__message-container .reply-context-pill
+{
+	
+	display: var(--not-user-comment-display) !important;
+	
+}
+/* 各種入力用要素の便宜的な装飾（そのままだと識別しにくいため） */
+.chat-wysiwyg-input__editor {
+	background-color: rgba(240,240,240, 1) !important;
+}
+[class*="ScCoreButtonPrimary"] {
+	background-color: rgba(240,0,0, 1) !important;
+}
+
+
+/* コメント要素包括要素 */
+.chat-list--default {
+	
+	font-size: var(--chat-font-size) !important;
+	line-height: var(--chat-line-height) !important;
+	
+}
+.simplebar-content {
+	position: relative;
+}
+/* コメント要素の直近の包括要素 */
+.chat-scrollable-area__message-container {
+	bottom: var(--chat-direction-bottom);
+	display: flex !important;
+	flex-direction: var(--chat-direction);
+	margin: var(--chat-margin);
+	padding: var(--chat-padding);
+	position: absolute;
+	width: 100%;
+}
+
+
+/* コメント要素 */
+.chat-scrollable-area__message-container > * {
+	
+	--comment-anime-fade-state: running;
+	--comment-opacity-additional-ratio: 1;
+	--comment-container-opacity: calc(var(--comment-container-default-opacity, 1) * var(--comment-opacity-additional-ratio));
+	--comment-container-filter-blur: var(--comment-container-default-filter-blur);
+	
+}
+/* 最新から三つ目までのコメント以降のコメントを一定時間後に自動で消すためのセレクターおよび変数 */
+.chat-scrollable-area__message-container > :not(:nth-last-child(-n+3)) {
+	
+	--comment-anime-out-state: running;
+	
+}
+/*
+	以下は恐らく Firefox での話。OBS のブラウザーでは同現象が生じていないように見えるため、内容を指定に反映させていない。
+		
+		以下のセレクターを含む、 .chat-line__message の子要素を選択する nth-last-child が 2 から始まるのは、
+		1 は常に Welcome などのシステムのコメントが対象になるためで、つまりそうした仕様を前提とした決め打ちである。
+		nth-child の引数は、nth-child 与えられたセレクターが対象とする要素の中の順番ではなく、
+		そのセレクターが一致した要素の親要素の中の順番を示す。
+		例えば div:nth-child(3) で、以下のようなツリー構造だった場合、
+		<section>
+			<a></a>
+			<div id="div1"></div>
+			<div id="div2"></div>
+			<div id="div3"></div>
+			<article></article>
+		</section>
+		選択される要素は #div3 ではなく #div2 になる。
+		これはつまり nth-child は静的なツリー構造を前提としていることを意味すると思われる。
+		こうしたことから、以下を含む、セレクターに nth-child を用いたルールは動作環境の変化で容易に予期しない結果を引き起こす点に注意が必要。
+		
+*/
+.chat-scrollable-area__message-container > :nth-last-child(1) {
+}
+.chat-scrollable-area__message-container > :nth-last-child(2) {
+	--comment-anime-exit-1-delay: var(--second-comment-anime-exit-delay);
+	--comment-opacity-additional-ratio: var(--second-comment-opacity-ratio-value);
+	--comment-container-filter-blur: var(--second-comment-container-filter-blur, var(--comment-container-default-filter-blur));
+}
+.chat-scrollable-area__message-container > :nth-last-child(n+2) {
+	--comment-anime-exit-1-state: running;
+	--comment-anime-fade-state: paused;
+}
+.chat-scrollable-area__message-container > :nth-last-child(n+2) .chat-line__message-container {
+	--comment-anime-fade-0-opacity-ratio: var(--comment-fade-finalized, 1);
+	--comment-anime-fade-1-opacity-ratio: var(--comment-fade-finalized, 1);
+}
+.chat-scrollable-area__message-container > :nth-last-child(3),
+.announcement-line:nth-last-child(3) {
+	--comment-opacity-additional-ratio: var(--third-comment-opacity-ratio-value);
+	--comment-container-filter-blur: var(--third-comment-container-filter-blur, var(--second-comment-container-filter-blur), var(--comment-container-default-filter-blur));
+}
+.chat-scrollable-area__message-container > :nth-last-child(n+3) {
+	--comment-anime-exit-1-delay: var(--third-comment-anime-exit-delay);
+}
+.chat-scrollable-area__message-container > :nth-last-child(n+4) {
+	--comment-opacity-additional-ratio: var(--old-comment-opacity-ratio-value);
+}
+.chat-scrollable-area__message-container > :nth-last-child(n+5) {
+	--comment-container-filter-blur: var(--old-comment-container-filter-blur, var(--third-comment-container-filter-blur), var(--second-comment-container-filter-blur), var(--comment-container-default-filter-blur));
+}
+.chat-scrollable-area__message-container > :nth-last-child(n+6) {
+	--comment-anime-exit-0-state: running;
+	--comment-anime-exit-1-state: paused;
+}
+
+.chat-scrollable-area__message-container > :last-child {
+	--comment-anime-latest: none;
+}
+.chat-scrollable-area__message-container > :not(:last-child) {
+	--comment-anime-latest: none;
+}
+.chat-line__message {
+	
+	/*
+		以下の変数は各アニメの値を animation に指定するために一括指定形式で並べたもの。
+		変数を消すか、コメントにすると、その変数が示すアニメを再生させなくすることができる。
+	*/
+	
+	/* 以下二つは一定時間経過後コメントを半透明化し、さらに時間経過後完全に透明にすることを想定したアニメ */
+	--comment-anime-fade-0: comment-fade-0 var(--comment-anime-fade-0-duration) linear var(--comment-anime-fade-0-delay) 1 normal forwards var(--comment-anime-fade-state, paused);
+	--comment-anime-fade-1: comment-fade-1 var(--comment-anime-fade-1-duration) linear var(--comment-anime-fade-1-delay) 1 normal forwards var(--comment-anime-fade-state, paused);
+	
+	/* 以下三つの変数は、このセレクターが選択する要素の子要素で用いる */
+	/* 五つ目以降のコメントを即時消すアニメ */
+	--comment-anime-exit-0: comment-exit var(--comment-anime-exit-0-duration) ease-in 0s 1 normal forwards var(--comment-anime-exit-0-state, paused);
+	/* 一つ目以降のコメントを一定時間後に消すアニメ */
+	--comment-anime-exit-1: comment-exit var(--comment-anime-exit-1-duration) ease-in var(--comment-anime-exit-1-delay, 0s) 1 normal forwards var(--comment-anime-exit-1-state, paused);
+	/* 上記以外の状況でコメントを消すアニメ */
+	--comment-anime-out: comment-io var(--comment-anime-out-duration) var(--comment-anime-out-function) var(--comment-anime-out-delay) 1 reverse forwards var(--comment-anime-out-state);
+	
+	color: var(--comment-color) !important;
+	display: flex;
+	flex-direction: var(--comment-flex-direction);
+	margin: 1.5rem 0 1.5rem 3rem;
+	font-family: var(--comment-font-family) !important;
+	font-size: var(--comment-font-size) !important;
+	font-weight: var(--comment-font-weight) !important;
+	
+}
+.chat-line__message-container {
+	
+	--comment-io-transform-origin-x-begin: center;
+	--comment-io-transform-origin-y-begin: bottom;
+	
+	--shared-exit-anime-for-message-container-child:
+		var(--disable-comment-anime-exit-0, var(--comment-anime-exit-0, none)),
+		var(--disable-comment-anime-exit-1, var(--comment-anime-exit-1, none)),
+		var(--disable-comment-anime-out, var(--comment-anime-out, none));
+	
+	filter: blur(var(--comment-container-filter-blur));
+	opacity: var(--comment-container-opacity);
+	
+	animation:	var(--disable-comment-anime-fade-0, var(--comment-anime-fade-0, none)),
+					var(--disable-comment-anime-fade-1, var(--comment-anime-fade-1, none)),
+					comment-fade-finalize 0s linear calc(var(--comment-anime-fade-1-duration) + var(--comment-anime-fade-1-delay)) 1 normal forwards var(--comment-anime-fade-state, paused);
+	
+}
+@keyframes comment-fade-0 {
+	from {
+		opacity: var(--comment-container-opacity);
+	}
+	to {
+		opacity: calc(var(--comment-container-opacity) * var(--comment-anime-fade-0-opacity-ratio));
+	}
+}
+@keyframes comment-fade-1 {
+	from {
+		opacity: calc(var(--comment-container-opacity) * var(--comment-anime-fade-0-opacity-ratio));
+	}
+	to {
+		opacity: calc(var(--comment-container-opacity) * var(--comment-anime-fade-1-opacity-ratio));
+	}
+}
+@keyframes comment-fade-finalize {
+	from {
+		--comment-fade-finalized: 1;
+	}
+	to {
+		--comment-fade-finalized: 0;
+	}
+}
+
+/*
+	通常の表示終了トランジションの指定。
+	コメントの位置によって変化する表示終了方法は以下のセレクターの親要素(.chat-line__message など)に対して行なわれ、
+	このセレクターが対象にする表示終了方法はそれに当てはまらない状況で、いわばフェイルセーフ的に行なわれる。
+	現状では .chat-line__message-container が示す要素.chat-line__message のすべての子要素へ適用されるが、
+	これに加えて .chat-line__message-container の擬似要素 ::before にも適用している。
+	指定を可能な限り共通化、一元化するために、表示終了アニメの適用は個々のルール内で
+	変数 --shared-exit-anime-for-message-container-child を使用として別個に行なっている。
+	そのため、例えば ::after を作った際など、以下のセレクターで選択されない子要素が増えた場合は、
+	都度同変数を使ってそのルール内で適用する必要がある。冗長かつ煩雑だが、
+	共通する要素の異なるルール内で同じプロパティの宣言を行なった場合、詳細度の低いルールが上書きされる CSS の特徴に基づいている。
+*/
+.chat-line__message-container > * {
+	
+	opacity: var(--comment-opacity);
+	transform-origin: var(--comment-io-transform-origin-x-begin) var(--comment-io-transform-origin-y-begin);
+	
+	animation: var(--shared-exit-anime-for-message-container-child);
+	
+}
+@keyframes comment-io {
+	0% {
+		transform: scale(1,0);
+		transform-origin: var(--comment-io-transform-origin-x-begin) var(--comment-io-transform-origin-y-begin);
+	}
+	33% {
+		transform: scale(1,1.2);
+	}
+	67% {
+		transform: scale(1,.9);
+	}
+	100% {
+		transform: scale(1,1);
+		transform-origin:	var(--comment-io-transform-origin-x-end, var(--comment-io-transform-origin-x-begin))
+								var(--comment-io-transform-origin-y-end, var(--comment-io-transform-origin-y-begin));
+	}
+}
+@keyframes comment-exit {
+	from {
+		opacity: var(--comment-opacity);
+	}
+	to {
+		opacity: var(--comment-opacity-to);
+	}
+}
+
+.mddis.chat-line__no-background {
+	
+	align-items: center !important;
+	display: flex !important;
+	flex-direction: var(--comment-wrapper-flex-direction);
+	justify-content: flex-end;
+	
+}
+
+/* コメントタイムスタンプ */
+.chat-line__timestamp {
+	color: var(--timestamp-color) !important;
+	flex: 1 0 auto;
+	font-family: var(--timestamp-font-family, inherit);
+	font-size: var(--timestamp-font-size, inherit);
+	font-weight: var(--timestamp-font-weight, inherit);
+	text-shadow: var(--timestamp-text-shadow);
+}
+
+/* コメント送信者情報要素 */
+.chat-line__username-container {
+	
+	color: var(--username-node-color) !important;
+	align-content: center;
+	align-items: center;
+	align-self: stretch;
+	display: flex !important;
+	flex: 0 1 auto !important;
+	flex-direction: var(--username-node-flex-direction);
+	flex-wrap: wrap;
+	justify-content: center;
+	font-family: var(--username-node-font-family, inherit) !important;
+	font-size: var(--username-node-font-size, inherit) !important;
+	font-weight: var(--username-node-font-weight, inherit) !important;
+	margin: var(--username-node-margin);
+	padding: var(--username-node-padding);
+	position: relative;
+	
+}
+/* コメント本文と送信者情報の間 */
+.chat-line__username-container::after {
+	
+	border-right: var(--comment-separator);
+	content: "";
 	height: 100%;
+	left: var(--comment-separator-left);
+	position: absolute;
+	right: var(--comment-separator-right);
+	
 }
-body {
-	background: radial-gradient(farthest-corner at 8% 8%,rgb(160, 160, 160), rgb(80, 80, 80)) !important;
+
+/* 送信者情報内の要素（送信者、バッジ）間の余白設定。  */
+.chat-line__username-container > * {
+	margin: 0 .5rem;
+}
+
+/* コメント送信者バッジ */
+.chat-badge {
+	border-radius: var(--user-badge-border-radius);
+}
+/* コメント送信者名 */
+.chat-line__username {
+	color: rgba(--username-color, inherit) !important;
+	align-items: center;
+	display: flex;
+	font-family: var(--username-font-family, inherit) !important;
+	font-size: var(--username-font-size, inherit) !important;
+	font-weight: var(--username-font-weight, inherit) !important;
+	overflow-wrap: break-word;
+	word-break: keep-all;
+}
+/* コメント送信者ID */
+.chat-author__display-name {
+	color: var(--display-name-color) !important;
+	font-family: var(--display-name-font-family, inherit) !important;
+	font-size: var(--display-name-font-size, inherit) !important;
+	font-weight: var(--display-name-font-weight, inherit) !important;
+	text-shadow: var(--display-name-text-shadow);
+}
+
+/* コメント本文内包要素 */
+[data-test-selector="chat-line-message-body"] {
+	
+	color: var(--message-color) !important;
+	font-family: var(--message-font-family) !important;
+	font-size: var(--message-font-size) !important;
+	font-weight: var(--message-font-weight) !important;
+	line-height: var(--message-line-height) !important;
+	position: relative;
+	text-align: var(--message-text-align);
+	text-shadow: var(--message-text-shadow) !important;
+	transform-origin: center bottom;
+	/*word-break: break-all;*/
+	word-break: break-word;
+	
+	animation: comment-io var(--message-anime-in-duration) var(--message-anime-in-function) var(--message-anime-in-delay) 1 normal forwards running;
+	
+}
+/*
+	以下のルールのセレクターは、空白しか中身を持たない要素の選択を企図しており、
+		[data-test-selector="chat-line-message-body"] > :not(.chat-line__message--emote-button + .text-fragment)
+	で選択されるはずだが、OBS のブラウザーではなぜか機能しない。Firefox だけでなく OBS のブラウザーと同等バージョンの Chromium でもこのセレクターは機能する。
+	:not(:empty) はその代替を目的としているが、:empty が空白しか持たない要素も選択対象とするのは将来的な仕様で、現状ではこれも機能しない。
+*/
+/*
+.chat-line__message:nth-last-child(1) [data-test-selector="chat-line-message-body"] > :not(:empty) {
+	
+	background: var(--message-child-background);
+	padding: var(--message-child-padding);
+	
+}
+*/
+
+/* 新着マーク */
+.chat-line__no-background {
+	
+}
+.chat-line__no-background::before {
+	
+	background: var(--new-arrival-bg-0), var(--new-arrival-background-color);
+	border-radius: 100%;
+	content: "";
+	display: flex;
+	font-size: var(--new-arrival-font-size);
+	height: var(--new-arrival-size);
+	left: calc(var(--new-arrival-size) / -2);
+	position: absolute;
+	top: calc(var(--new-arrival-size) / -2);
+	transform-origin: center;
+	width: var(--new-arrival-size);
+	z-index: 1;
+	
+	animation: var(--new-arrival-loop-anime), var(--new-arrival-anime-in), var(--new-arrival-anime-out);
+	
+}
+@keyframes new-arrival {
+	from {
+		background-position: center 90%, center;
+	}
+	to {
+		background-position: center 10%, center;
+	}
+}
+@keyframes new-arrival-out {
+	from {
+		transform: scale(1);
+	}
+	to {
+		transform: scale(0);
+	}
+}
+
+/* 送信者情報とコメントの間にあるセパレーター。Twitch の既定では ":" */
+[data-test-selector="chat-message-separator"] {
+	display: none !important;
+}
+
+/* エモート関連 */
+.chat-line__message--emote-button, .chat-line__message--emote-button * {
+	
+	height: var(--emote-size) !important;
+	width: var(--emote-size) !important;
+	
+}
+.chat-line__message--emote-button {
+	
+}
+.chat-line__message--emote-button img {
+	
+	image-rendering: crisp-edges;
+	image-rendering: -webkit-optimize-contrast;
+	transform-origin: center bottom;
+	
+	animation: emote-anime var(--emote-anime-loop-duration) var(--emote-anime-loop-function) var(--emote-anime-loop-delay) var(--emote-anime-loop-iteration) normal forwards running;
+	
+}
+@keyframes emote-anime {
+	0% {
+		transform: translate(0,0);
+	}
+	2.5% {
+		transform: scale(1,.8);
+	}
+	5% {
+		transform: scale(1) translate(0,calc(var(--emote-anime-loop-jump-amount) * -1));
+	}
+	7.5% {
+		transform: scale(1,.75);
+	}
+	10% {
+		transform: scale(1,1.05) translate(0,0);
+	}
+	11% {
+		transform: scale(1,1);
+	}
+	100% {
+		transform: translate(0,0);
+	}
+}
+
+/* "Welcome to the chat room!" の表示 */
+[data-a-target="chat-welcome-message"]
+{
+	visibility: hidden;
+}
+
+/* Announcement */
+.announcement-line {
+	
+	background-color: transparent !important;
+	border: none;
+	
+}
+.announcement-line .chat-line__message {
+	
+	padding-left: 0 !important;
+	
+}
+.announcement-line .chat-line__message-container::before {
+	
+	--announce-icon-anime-rotate-neutral: 0deg;
+	--announce-icon-anime-rotate-destination: 10deg;
+	--announce-icon-anime-rotate-opposite: calc(var(--announce-icon-anime-rotate-destination) * -1);
+	--announce-icon-size: 3rem;
+	--announce-icon-font-size: 4rem;
+	
+	content: "📢";
+	display: flex;
+	height: var(--announce-icon-size);
+	font-size: var(--announce-icon-font-size);
+	opacity: var(--comment-opacity);
+	position: absolute;
+	transform-origin: center;
+	width: var(--announce-icon-size);
+	
+	animation:	announce-icon 1s ease 0s infinite alternate forwards running,
+					var(--disable-comment-anime-out, var(--comment-anime-out, none)),
+					var(--shared-exit-anime-for-message-container-child);
+	
+}
+/* todo: animation-direction: alternate; にすることで繰り返し部分を一回に省略可能。 */
+@keyframes announce-icon {
+	
+	75% {
+		transform: rotate(var(--announce-icon-anime-rotate-neutral));
+	}
+	91.7% {
+		transform: rotate(var(--announce-icon-anime-rotate-destination));
+	}
+	95.8% {
+		transform: rotate(var(--announce-icon-anime-rotate-neutral));
+	}
+	100% {
+		transform: rotate(var(--announce-icon-anime-rotate-opposite));
+	}
+	
+}
+.announcement-line > :first-child {
+	display: none !important;
+}
+.announcement-line [data-test-selector="chat-line-message-body"],
+.announcement-line .chat-line__no-background::before
+{
+	margin: var(--announce-icon-sibling-margin);
+}
+.announcement-line:last-child .chat-line__message {
+	/*--disable-comment-anime-fade-0: none;
+	--disable-comment-anime-fade-1: none;*/
+	--comment-anime-fade-0-delay: var(--announce-anime-fade-0-delay);
+	--comment-anime-fade-1-delay: var(--announce-anime-fade-1-delay);
+}
+.announcement-line [data-test-selector="chat-line-message-body"] > :not(:empty) {
+	
+	background: var(--message-child-background);
+	padding: var(--message-child-padding);
+	
 }
